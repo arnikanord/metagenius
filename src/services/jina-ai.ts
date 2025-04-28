@@ -1,3 +1,4 @@
+
 /**
  * Extracts text content from a given URL using the Jina AI Reader API.
  *
@@ -6,16 +7,20 @@
  */
 export async function scrapeTextFromUrl(url: string): Promise<string | null> {
   const jinaReaderUrl = `https://r.jina.ai/${encodeURIComponent(url)}`;
-  // Consider adding JINA_API_KEY from .env if required for your plan
-  // const apiKey = process.env.JINA_API_KEY;
+  const apiKey = process.env.JINA_API_KEY; // Access the Jina AI API key from environment variables
+
   const headers: HeadersInit = {
     'Accept': 'application/json', // Request JSON response
-    // ...(apiKey && { 'Authorization': `Bearer ${apiKey}` }), // Uncomment if API key is needed
+    ...(apiKey && { 'Authorization': `Bearer ${apiKey}` }), // Include API key if it exists
     'X-Return-Format': 'text', // Explicitly request text content
   };
 
   try {
     console.log(`Attempting to scrape: ${url} via Jina AI`);
+    if (!apiKey) {
+        console.warn('JINA_API_KEY environment variable not set. Proceeding without authentication, which might be rate-limited or restricted.');
+    }
+
     const response = await fetch(jinaReaderUrl, {
       method: 'GET',
       headers: headers,
@@ -31,7 +36,14 @@ export async function scrapeTextFromUrl(url: string): Promise<string | null> {
          errorBody = await response.text(); // Fallback to text if JSON parsing fails
       }
       console.error(`Jina AI request failed for ${url}: ${response.status} ${response.statusText}. Body: ${errorBody}`);
-      throw new Error(`Jina AI request failed: ${response.status} ${response.statusText}`);
+      // Provide a more user-friendly error message based on status code if possible
+      if (response.status === 401 || response.status === 403) {
+        throw new Error(`Jina AI Authentication/Authorization failed. Please check your JINA_API_KEY.`);
+      } else if (response.status === 429) {
+         throw new Error(`Jina AI Rate Limit Exceeded. Please wait and try again or check your plan limits.`);
+      } else {
+        throw new Error(`Jina AI request failed: ${response.status} ${response.statusText}`);
+      }
     }
 
     // Jina AI might return JSON or plain text depending on headers/API specifics
@@ -50,6 +62,11 @@ export async function scrapeTextFromUrl(url: string): Promise<string | null> {
     console.error(`Error scraping text from URL ${url}:`, error);
     // Re-throw or return null/error indicator based on desired flow control
     // Returning null allows the calling function (generateMetaTagsFlow) to handle it
+    // Re-throwing the specific errors from above to give better feedback
+    if (error instanceof Error && (error.message.includes('Authentication') || error.message.includes('Rate Limit'))) {
+        throw error;
+    }
+    // Return null for other generic network/scraping issues
     return null;
   }
 }
