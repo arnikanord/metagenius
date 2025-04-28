@@ -98,7 +98,7 @@ export function MetaGeneratorTable() {
        toast({
         title: "Generation Partially Complete",
         description: `Generated meta tags for some URLs, but encountered errors with others. Please check the table and logs for details.`,
-        variant: "destructive",
+        variant: "destructive", // Changed to destructive for partial success with errors
       });
     }
   };
@@ -151,14 +151,14 @@ export function MetaGeneratorTable() {
               id="metaTitleExample"
               value={metaTitleExampleInput}
               onChange={handleMetaTitleExampleInputChange}
-              placeholder="Provide an example meta title for style guidance (max 59 chars)."
+              placeholder="Provide an example meta title for style guidance (target: 49-59 chars)."
               rows={1} // Shorter height for title
               maxLength={59} // Enforce max length visually
               className="w-full border-input rounded-md shadow-sm focus:ring-primary focus:border-primary"
               aria-describedby="meta-title-example-description"
             />
             <p id="meta-title-example-description" className="mt-1 text-xs text-muted-foreground">
-              The AI will try to follow the style and tone of your title example. Max 59 characters.
+              The AI will try to follow the style and tone of your title example. Target length: 49-59 characters.
             </p>
           </div>
 
@@ -171,14 +171,14 @@ export function MetaGeneratorTable() {
               id="metaDescriptionExample"
               value={metaDescriptionExampleInput}
               onChange={handleMetaDescriptionExampleInputChange}
-              placeholder="Provide an example meta description for style guidance (e.g., including special characters like ✓ or ➤). Max 159 chars."
+              placeholder="Provide an example meta description for style guidance (e.g., including special characters like ✓ or ➤). Target: 140-159 chars."
               rows={3}
               maxLength={159} // Enforce max length visually
               className="w-full border-input rounded-md shadow-sm focus:ring-primary focus:border-primary"
               aria-describedby="meta-description-example-description"
             />
             <p id="meta-description-example-description" className="mt-1 text-xs text-muted-foreground">
-              The AI will try to follow the style, tone, and character usage of your description example. Max 159 characters.
+              The AI will try to follow the style, tone, and character usage of your description example. Target length: 140-159 characters.
             </p>
           </div>
 
@@ -216,18 +216,22 @@ export function MetaGeneratorTable() {
                 <TableHeader>
                   <TableRow className="bg-secondary">
                     <TableHead className="w-[30%] font-semibold text-secondary-foreground">URL</TableHead>
-                    <TableHead className="w-[30%] font-semibold text-secondary-foreground">Generated Meta Title (Max 59)</TableHead>
-                    <TableHead className="w-[40%] font-semibold text-secondary-foreground">Generated Meta Description (Max 159)</TableHead>
+                    <TableHead className="w-[30%] font-semibold text-secondary-foreground">Generated Meta Title (49-59 Chars)</TableHead>
+                    <TableHead className="w-[40%] font-semibold text-secondary-foreground">Generated Meta Description (140-159 Chars)</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {metaData.map((item, index) => (
                     <TableRow key={index} className="hover:bg-muted/50">
                       <TableCell className="font-medium break-words">{item.url}</TableCell>
-                      <TableCell className="break-words">
+                       <TableCell className={`break-words ${
+                         item.metaTitle.length < 49 || item.metaTitle.length > 59 ? 'text-destructive' : ''
+                       }`}>
                         {item.metaTitle} ({item.metaTitle.length} chars)
                       </TableCell>
-                      <TableCell className="break-words">
+                      <TableCell className={`break-words ${
+                        item.metaDescription.length < 140 || item.metaDescription.length > 159 ? 'text-destructive' : ''
+                      }`}>
                          {item.metaDescription} ({item.metaDescription.length} chars)
                        </TableCell>
                     </TableRow>
@@ -235,10 +239,13 @@ export function MetaGeneratorTable() {
                 </TableBody>
               </Table>
             </div>
+             {/* Add a note about potential length deviations */}
+             <p className="text-xs text-muted-foreground text-center">
+              Note: The AI aims for the specified character lengths, but results may occasionally fall slightly outside the target range. Results outside the target range are highlighted in red.
+            </p>
           </div>
         )}
       </CardContent>
     </Card>
   );
 }
-
