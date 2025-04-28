@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { ChangeEvent, FormEvent } from 'react';
@@ -20,7 +21,8 @@ import { generateAndDownloadCSV, type MetaData } from '@/lib/csv-utils'; // Ensu
 
 export function MetaGeneratorTable() {
   const [urlsInput, setUrlsInput] = useState<string>('');
-  const [metaExampleInput, setMetaExampleInput] = useState<string>(''); // State for meta example
+  const [metaTitleExampleInput, setMetaTitleExampleInput] = useState<string>(''); // State for meta title example
+  const [metaDescriptionExampleInput, setMetaDescriptionExampleInput] = useState<string>(''); // State for meta description example
   const [metaData, setMetaData] = useState<MetaData[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const { toast } = useToast();
@@ -29,14 +31,21 @@ export function MetaGeneratorTable() {
     setUrlsInput(e.target.value);
   };
 
-  const handleMetaExampleInputChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
-    setMetaExampleInput(e.target.value); // Handler for meta example input
+  const handleMetaTitleExampleInputChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
+    setMetaTitleExampleInput(e.target.value); // Handler for meta title example input
   };
+
+  const handleMetaDescriptionExampleInputChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
+    setMetaDescriptionExampleInput(e.target.value); // Handler for meta description example input
+  };
+
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const urls = urlsInput.split('\n').map(url => url.trim()).filter(url => url.length > 0 && url.startsWith('http'));
-    const metaExample = metaExampleInput.trim(); // Get the trimmed example
+    const metaTitleExample = metaTitleExampleInput.trim(); // Get the trimmed title example
+    const metaDescriptionExample = metaDescriptionExampleInput.trim(); // Get the trimmed description example
+
 
     if (urls.length === 0) {
       toast({
@@ -56,8 +65,12 @@ export function MetaGeneratorTable() {
     for (const url of urls) {
       try {
         console.log(`Processing URL: ${url}`); // Log start
-        // Pass the metaExample to the flow
-        const result = await generateMetaTags({ url, metaExample: metaExample || undefined });
+        // Pass the separate examples to the flow
+        const result = await generateMetaTags({
+           url,
+           metaTitleExample: metaTitleExample || undefined,
+           metaDescriptionExample: metaDescriptionExample || undefined
+        });
         results.push({ url, ...result });
         console.log(`Successfully processed: ${url}`); // Log success
       } catch (error) {
@@ -129,22 +142,43 @@ export function MetaGeneratorTable() {
             />
           </div>
 
-          {/* New Textarea for Meta Example */}
+          {/* New Textarea for Meta Title Example */}
           <div>
-            <label htmlFor="metaExample" className="block text-sm font-medium text-foreground mb-1">
-              Meta Example (Optional):
+            <label htmlFor="metaTitleExample" className="block text-sm font-medium text-foreground mb-1">
+              Meta Title Example (Optional):
             </label>
             <Textarea
-              id="metaExample"
-              value={metaExampleInput}
-              onChange={handleMetaExampleInputChange}
-              placeholder="Provide an example meta description for style guidance (e.g., including special characters like ✓ or ➤)"
-              rows={3}
+              id="metaTitleExample"
+              value={metaTitleExampleInput}
+              onChange={handleMetaTitleExampleInputChange}
+              placeholder="Provide an example meta title for style guidance (max 59 chars)."
+              rows={1} // Shorter height for title
+              maxLength={59} // Enforce max length visually
               className="w-full border-input rounded-md shadow-sm focus:ring-primary focus:border-primary"
-              aria-describedby="meta-example-description"
+              aria-describedby="meta-title-example-description"
             />
-            <p id="meta-example-description" className="mt-1 text-xs text-muted-foreground">
-              The AI will try to follow the style, tone, and character usage of your example.
+            <p id="meta-title-example-description" className="mt-1 text-xs text-muted-foreground">
+              The AI will try to follow the style and tone of your title example. Max 59 characters.
+            </p>
+          </div>
+
+          {/* New Textarea for Meta Description Example */}
+          <div>
+            <label htmlFor="metaDescriptionExample" className="block text-sm font-medium text-foreground mb-1">
+              Meta Description Example (Optional):
+            </label>
+            <Textarea
+              id="metaDescriptionExample"
+              value={metaDescriptionExampleInput}
+              onChange={handleMetaDescriptionExampleInputChange}
+              placeholder="Provide an example meta description for style guidance (e.g., including special characters like ✓ or ➤). Max 159 chars."
+              rows={3}
+              maxLength={159} // Enforce max length visually
+              className="w-full border-input rounded-md shadow-sm focus:ring-primary focus:border-primary"
+              aria-describedby="meta-description-example-description"
+            />
+            <p id="meta-description-example-description" className="mt-1 text-xs text-muted-foreground">
+              The AI will try to follow the style, tone, and character usage of your description example. Max 159 characters.
             </p>
           </div>
 
@@ -207,3 +241,4 @@ export function MetaGeneratorTable() {
     </Card>
   );
 }
+
