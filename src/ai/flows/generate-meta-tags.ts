@@ -1,8 +1,8 @@
 'use server';
 /**
- * @fileOverview A flow to generate SEO-friendly meta titles and descriptions in German for a given URL.
+ * @fileOverview A flow to generate SEO-friendly meta titles and descriptions in German for a given URL, optionally guided by an example.
  *
- * - generateMetaTags - A function that takes a URL and returns a meta title and description.
+ * - generateMetaTags - A function that takes a URL and an optional meta example, and returns a meta title and description.
  * - GenerateMetaTagsInput - The input type for the generateMetaTags function.
  * - GenerateMetaTagsOutput - The return type for the generateMetaTags function.
  */
@@ -13,6 +13,7 @@ import {scrapeTextFromUrl} from '@/services/jina-ai';
 
 const GenerateMetaTagsInputSchema = z.object({
   url: z.string().describe('The URL to scrape and generate meta tags for.'),
+  metaExample: z.string().optional().describe('An optional example meta description to guide the generation style and character usage (e.g., ✓, ➤).'),
 });
 export type GenerateMetaTagsInput = z.infer<typeof GenerateMetaTagsInputSchema>;
 
@@ -35,6 +36,7 @@ const prompt = ai.definePrompt({
   input: {
     schema: z.object({
       scrapedText: z.string().describe('The scraped text content from the URL.'),
+      metaExample: z.string().optional().describe('An optional example meta description for style guidance.'),
     }),
   },
   output: {
@@ -49,15 +51,21 @@ const prompt = ai.definePrompt({
   },
   prompt: `You are an SEO expert specializing in creating meta titles and descriptions in German.
 
-  Given the following text content from a URL, generate an SEO-friendly meta title (maximum 59 characters) and a meta description (maximum 159 characters) in German.
-  The meta title and description should be concise, engaging, and relevant to the content of the page.
-  The meta title and description should be in German.
+Given the following text content from a URL, generate an SEO-friendly meta title (maximum 59 characters) and a meta description (maximum 159 characters) in German.
+The meta title and description should be concise, engaging, and relevant to the content of the page.
+The meta title and description should be in German.
 
-  Text content:
-  {{scrapedText}}
+{{#if metaExample}}
+Pay close attention to the following example for style, tone, and use of special characters (like ✓ and ➤):
+Example: {{{metaExample}}}
+Generate the new meta description following this example's style.
+{{/if}}
 
-  Output:
-  `,
+Text content:
+{{{scrapedText}}}
+
+Output:
+`,
 });
 
 const generateMetaTagsFlow = ai.defineFlow<
@@ -77,7 +85,20 @@ async input => {
 
   const {output} = await prompt({
     scrapedText,
+    metaExample: input.metaExample, // Pass the example to the prompt
   });
 
-  return output!;
+  // Simple length enforcement (could be refined)
+  const finalTitle = output!.metaTitle.length > 59
+    ? output!.metaTitle.substring(0, 56) + '...'
+    : output!.metaTitle;
+  const finalDescription = output!.metaDescription.length > 159
+    ? output!.metaDescription.substring(0, 156) + '...'
+    : output!.metaDescription;
+
+
+  return {
+      metaTitle: finalTitle,
+      metaDescription: finalDescription,
+  };
 });

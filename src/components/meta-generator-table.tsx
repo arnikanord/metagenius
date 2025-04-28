@@ -20,17 +20,23 @@ import { generateAndDownloadCSV, type MetaData } from '@/lib/csv-utils'; // Ensu
 
 export function MetaGeneratorTable() {
   const [urlsInput, setUrlsInput] = useState<string>('');
+  const [metaExampleInput, setMetaExampleInput] = useState<string>(''); // State for meta example
   const [metaData, setMetaData] = useState<MetaData[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const { toast } = useToast();
 
-  const handleInputChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
+  const handleUrlsInputChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     setUrlsInput(e.target.value);
+  };
+
+  const handleMetaExampleInputChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
+    setMetaExampleInput(e.target.value); // Handler for meta example input
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const urls = urlsInput.split('\n').map(url => url.trim()).filter(url => url.length > 0 && url.startsWith('http'));
+    const metaExample = metaExampleInput.trim(); // Get the trimmed example
 
     if (urls.length === 0) {
       toast({
@@ -50,7 +56,8 @@ export function MetaGeneratorTable() {
     for (const url of urls) {
       try {
         console.log(`Processing URL: ${url}`); // Log start
-        const result = await generateMetaTags({ url });
+        // Pass the metaExample to the flow
+        const result = await generateMetaTags({ url, metaExample: metaExample || undefined });
         results.push({ url, ...result });
         console.log(`Successfully processed: ${url}`); // Log success
       } catch (error) {
@@ -113,7 +120,7 @@ export function MetaGeneratorTable() {
             <Textarea
               id="urls"
               value={urlsInput}
-              onChange={handleInputChange}
+              onChange={handleUrlsInputChange}
               placeholder="e.g.&#10;https://ineofit.de/behandlungen/&#10;https://ineofit.de/behandlungen/hoehenraum-therapie/"
               rows={6}
               className="w-full border-input rounded-md shadow-sm focus:ring-primary focus:border-primary"
@@ -121,6 +128,27 @@ export function MetaGeneratorTable() {
               aria-required="true"
             />
           </div>
+
+          {/* New Textarea for Meta Example */}
+          <div>
+            <label htmlFor="metaExample" className="block text-sm font-medium text-foreground mb-1">
+              Meta Example (Optional):
+            </label>
+            <Textarea
+              id="metaExample"
+              value={metaExampleInput}
+              onChange={handleMetaExampleInputChange}
+              placeholder="Provide an example meta description for style guidance (e.g., including special characters like ✓ or ➤)"
+              rows={3}
+              className="w-full border-input rounded-md shadow-sm focus:ring-primary focus:border-primary"
+              aria-describedby="meta-example-description"
+            />
+            <p id="meta-example-description" className="mt-1 text-xs text-muted-foreground">
+              The AI will try to follow the style, tone, and character usage of your example.
+            </p>
+          </div>
+
+
           <Button
             type="submit"
             disabled={isLoading}
@@ -154,16 +182,20 @@ export function MetaGeneratorTable() {
                 <TableHeader>
                   <TableRow className="bg-secondary">
                     <TableHead className="w-[30%] font-semibold text-secondary-foreground">URL</TableHead>
-                    <TableHead className="w-[30%] font-semibold text-secondary-foreground">Generated Meta Title</TableHead>
-                    <TableHead className="w-[40%] font-semibold text-secondary-foreground">Generated Meta Description</TableHead>
+                    <TableHead className="w-[30%] font-semibold text-secondary-foreground">Generated Meta Title (Max 59)</TableHead>
+                    <TableHead className="w-[40%] font-semibold text-secondary-foreground">Generated Meta Description (Max 159)</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {metaData.map((item, index) => (
                     <TableRow key={index} className="hover:bg-muted/50">
                       <TableCell className="font-medium break-words">{item.url}</TableCell>
-                      <TableCell className="break-words">{item.metaTitle}</TableCell>
-                      <TableCell className="break-words">{item.metaDescription}</TableCell>
+                      <TableCell className="break-words">
+                        {item.metaTitle} ({item.metaTitle.length} chars)
+                      </TableCell>
+                      <TableCell className="break-words">
+                         {item.metaDescription} ({item.metaDescription.length} chars)
+                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
