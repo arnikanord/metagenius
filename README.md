@@ -1,0 +1,2 @@
+# metagenius
+Generates Meta titles
